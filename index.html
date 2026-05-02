@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>鸽棚血统管理</title>
+  <style>
+    body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; margin: 0; background: #f6f6f6; color: #222; }
+    header { background: #222; color: #fff; padding: 14px 16px; font-size: 20px; font-weight: 700; }
+    main { max-width: 1100px; margin: 0 auto; padding: 16px; }
+    .card { background: #fff; border-radius: 10px; padding: 14px; margin-bottom: 14px; box-shadow: 0 1px 5px rgba(0,0,0,.08); }
+    .row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    label { display: block; font-size: 13px; color: #555; margin-bottom: 4px; }
+    input, textarea, select, button { font: inherit; box-sizing: border-box; }
+    input, textarea, select { width: 100%; padding: 9px; border: 1px solid #ccc; border-radius: 8px; background: #fff; }
+    textarea { min-height: 72px; resize: vertical; }
+    button { border: 0; border-radius: 8px; padding: 9px 12px; background: #222; color: #fff; cursor: pointer; margin: 3px; }
+    button.secondary { background: #666; }
+    button.danger { background: #b3261e; }
+    button.light { background: #e7e7e7; color: #222; }
+    .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .toolbar input { max-width: 360px; }
+    .list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; }
+    .item { border: 1px solid #ddd; border-radius: 10px; padding: 10px; background: #fff; }
+    .item strong { color: #b3261e; }
+    .photo { width: 96px; height: 96px; object-fit: cover; border-radius: 8px; border: 1px solid #ddd; background: #fafafa; }
+    .detail { display: flex; gap: 12px; flex-wrap: wrap; }
+    .muted { color: #777; font-size: 13px; }
+    .pedigree { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+    .gen { min-width: 210px; }
+    .box { min-height: 96px; border: 1px solid #bbb; border-radius: 8px; padding: 8px; margin-bottom: 8px; background: #fff; }
+    .box .ring { font-weight: 800; color: #c23b22; }
+    .box .empty { color: #aaa; }
+    .small { font-size: 12px; color: #555; white-space: pre-wrap; }
+    @media (max-width: 700px) { .row { grid-template-columns: 1fr; } main { padding: 10px; } .pedigree { grid-template-columns: repeat(4, 210px); } }
+    @media print { header, .no-print, form, .toolbar, .list { display: none !important; } body { background: #fff; } .card { box-shadow: none; border: 0; } }
+  </style>
+</head>
+<body>
+<header>鸽棚血统管理</header>
+<main>
+  <section class="card no-print">
+    <div class="toolbar">
+      <input id="search" placeholder="搜索足环号 / 名字 / 成绩 / 备注" oninput="renderList()" />
+      <button onclick="newBird()">新增鸽子</button>
+      <button class="secondary" onclick="exportData()">导出备份</button>
+      <label class="light" style="padding:8px 10px;border-radius:8px;cursor:pointer;">导入备份<input type="file" accept="application/json" style="display:none" onchange="importData(event)"></label>
+      <button class="light" onclick="window.print()">打印血统图</button>
+    </div>
+    <div class="muted">数据保存在当前浏览器里。换手机/电脑前，请先“导出备份”。</div>
+  </section>
+
+  <section class="card no-print">
+    <h3 id="formTitle">新增鸽子</h3>
+    <form id="birdForm" onsubmit="saveBird(event)">
+      <input type="hidden" id="editingRing" />
+      <div class="row">
+        <div><label>足环号（唯一，必填）</label><input id="ring" required placeholder="例如 CHN2023-01-1668850" /></div>
+        <div><label>名字/昵称</label><input id="name" placeholder="例如 获奖鸽" /></div>
+        <div><label>性别</label><select id="gender"><option value="">不明</option><option>雄</option><option>雌</option></select></div>
+        <div><label>羽色</label><input id="color" placeholder="例如 灰、雨点、红轮" /></div>
+        <div><label>眼色/眼砂</label><input id="eye" placeholder="例如 黄眼、砂眼" /></div>
+        <div><label>出生年份</label><input id="year" placeholder="例如 2023" /></div>
+        <div><label>父亲足环号</label><input id="father" placeholder="输入父亲的足环号" /></div>
+        <div><label>母亲足环号</label><input id="mother" placeholder="输入母亲的足环号" /></div>
+      </div>
+      <div style="margin-top:10px"><label>成绩/血统说明</label><textarea id="achievement" placeholder="冠军、名次、血统说明等"></textarea></div>
+      <div style="margin-top:10px"><label>备注</label><textarea id="note"></textarea></div>
+      <div style="margin-top:10px"><label>照片</label><input id="photo" type="file" accept="image/*" /></div>
+      <div style="margin-top:10px">
+        <button type="submit">保存</button>
+        <button type="button" class="light" onclick="clearForm()">清空</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="card">
+    <h3>当前查看</h3>
+    <div id="detail" class="muted">请先新增或选择一只鸽子。</div>
+  </section>
+
+  <section class="card">
+    <h3>血统图</h3>
+    <div id="pedigree" class="pedigree"></div>
+  </section>
+
+  <section class="card no-print">
+    <h3>鸽子列表</h3>
+    <div id="list" class="list"></div>
+  </section>
+</main>
+
+<script>
+  const KEY = 'pigeon_pedigree_data_v1';
+  let birds = JSON.parse(localStorage.getItem(KEY) || '{}');
+  let currentRing = Object.keys(birds)[0] || '';
+
+  function saveStore() { localStorage.setItem(KEY, JSON.stringify(birds)); }
+  function norm(v) { return (v || '').trim(); }
+  function getBird(ring) { return birds[norm(ring)] || null; }
+
+  function photoToBase64(file) {
+    return new Promise((resolve) => {
+      if (!file) return resolve('');
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function saveBird(e) {
+    e.preventDefault();
+    const oldRing = norm(document.getElementById('editingRing').value);
+    const ring = norm(document.getElementById('ring').value);
+    if (!ring) return alert('足环号不能为空');
+    if (oldRing && oldRing !== ring && birds[ring]) return alert('这个足环号已经存在');
+    if (!oldRing && birds[ring]) {
+      if (!confirm('这个足环号已经存在，要覆盖吗？')) return;
+    }
+
+    const old = birds[oldRing] || birds[ring] || {};
+    const file = document.getElementById('photo').files[0];
+    const newPhoto = await photoToBase64(file);
+    const bird = {
+      ring,
+      name: norm(document.getElementById('name').value),
+      gender: norm(document.getElementById('gender').value),
+      color: norm(document.getElementById('color').value),
+      eye: norm(document.getElementById('eye').value),
+      year: norm(document.getElementById('year').value),
+      father: norm(document.getElementById('father').value),
+      mother: norm(document.getElementById('mother').value),
+      achievement: norm(document.getElementById('achievement').value),
+      note: norm(document.getElementById('note').value),
+      photo: newPhoto || old.photo || ''
+    };
+    if (oldRing && oldRing !== ring) delete birds[oldRing];
+    birds[ring] = bird;
+    currentRing = ring;
+    saveStore();
+    clearForm();
+    renderAll();
+  }
+
+  function editBird(ring) {
+    const b = getBird(ring);
+    if (!b) return;
+    document.getElementById('formTitle').textContent = '修改鸽子';
+    document.getElementById('editingRing').value = b.ring;
+    for (const id of ['ring','name','gender','color','eye','year','father','mother','achievement','note']) {
+      document.getElementById(id).value = b[id] || '';
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function deleteBird(ring) {
+    if (!confirm('确定删除 ' + ring + ' 吗？')) return;
+    delete birds[ring];
+    if (currentRing === ring) currentRing = Object.keys(birds)[0] || '';
+    saveStore();
+    renderAll();
+  }
+
+  function newBird() { clearForm(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+  function clearForm() {
+    document.getElementById('formTitle').textContent = '新增鸽子';
+    document.getElementById('birdForm').reset();
+    document.getElementById('editingRing').value = '';
+  }
+
+  function selectBird(ring) { currentRing = ring; renderAll(); }
+
+  function birdText(b) {
+    if (!b) return '';
+    return [b.ring,b.name,b.gender,b.color,b.eye,b.year,b.father,b.mother,b.achievement,b.note].join(' ').toLowerCase();
+  }
+
+  function renderList() {
+    const q = document.getElementById('search').value.trim().toLowerCase();
+    const list = document.getElementById('list');
+    const arr = Object.values(birds).filter(b => !q || birdText(b).includes(q));
+    if (!arr.length) { list.innerHTML = '<div class="muted">暂无数据</div>'; return; }
+    list.innerHTML = arr.map(b => `
+      <div class="item">
+        <div><strong>${escapeHtml(b.ring)}</strong></div>
+        <div>${escapeHtml(b.name || '')} ${escapeHtml(b.gender || '')}</div>
+        <div class="muted">父：${escapeHtml(b.father || '-')} / 母：${escapeHtml(b.mother || '-')}</div>
+        <button onclick="selectBird('${escapeJs(b.ring)}')">查看</button>
+        <button class="secondary" onclick="editBird('${escapeJs(b.ring)}')">修改</button>
+        <button class="danger" onclick="deleteBird('${escapeJs(b.ring)}')">删除</button>
+      </div>`).join('');
+  }
+
+  function renderDetail() {
+    const b = getBird(currentRing);
+    const el = document.getElementById('detail');
+    if (!b) { el.innerHTML = '请先新增或选择一只鸽子。'; return; }
+    el.innerHTML = `
+      <div class="detail">
+        ${b.photo ? `<img class="photo" src="${b.photo}">` : ''}
+        <div>
+          <div><strong style="color:#c23b22">${escapeHtml(b.ring)}</strong> ${escapeHtml(b.name || '')}</div>
+          <div>性别：${escapeHtml(b.gender || '-')}　羽色：${escapeHtml(b.color || '-')}　眼色：${escapeHtml(b.eye || '-')}　年份：${escapeHtml(b.year || '-')}</div>
+          <div>父：${escapeHtml(b.father || '-')}　母：${escapeHtml(b.mother || '-')}</div>
+          <div class="small">${escapeHtml(b.achievement || '')}</div>
+          <div class="small">${escapeHtml(b.note || '')}</div>
+        </div>
+      </div>`;
+  }
+
+  function box(ring, title) {
+    const b = getBird(ring);
+    if (!ring) return `<div class="box"><div class="empty">${title}<br>未录入</div></div>`;
+    if (!b) return `<div class="box"><div>${title}</div><div class="ring">${escapeHtml(ring)}</div><div class="small">资料未录入</div></div>`;
+    return `<div class="box" onclick="selectBird('${escapeJs(b.ring)}')">
+      <div class="small">${title}</div>
+      <div class="ring">${escapeHtml(b.ring)}</div>
+      <div>${escapeHtml(b.name || '')} ${escapeHtml(b.gender || '')}</div>
+      <div class="small">${escapeHtml([b.color,b.eye,b.achievement].filter(Boolean).join('\n'))}</div>
+    </div>`;
+  }
+
+  function renderPedigree() {
+    const b = getBird(currentRing);
+    const p = document.getElementById('pedigree');
+    if (!b) { p.innerHTML = '<div class="muted">暂无血统图</div>'; return; }
+    const f = getBird(b.father), m = getBird(b.mother);
+    const ff = f && getBird(f.father), fm = f && getBird(f.mother), mf = m && getBird(m.father), mm = m && getBird(m.mother);
+    p.innerHTML = `
+      <div class="gen"><h4>本鸽</h4>${box(b.ring, '本鸽')}</div>
+      <div class="gen"><h4>父母</h4>${box(b.father, '父亲')}${box(b.mother, '母亲')}</div>
+      <div class="gen"><h4>祖父母</h4>${box(f && f.father, '父亲的父亲')}${box(f && f.mother, '父亲的母亲')}${box(m && m.father, '母亲的父亲')}${box(m && m.mother, '母亲的母亲')}</div>
+      <div class="gen"><h4>曾祖父母</h4>
+        ${box(ff && ff.father, '父父父')}${box(ff && ff.mother, '父父母')}
+        ${box(fm && fm.father, '父母父')}${box(fm && fm.mother, '父母母')}
+        ${box(mf && mf.father, '母父父')}${box(mf && mf.mother, '母父母')}
+        ${box(mm && mm.father, '母母父')}${box(mm && mm.mother, '母母母')}
+      </div>`;
+  }
+
+  function renderAll() { renderDetail(); renderPedigree(); renderList(); }
+
+  function exportData() {
+    const blob = new Blob([JSON.stringify(birds, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = '鸽棚备份_' + new Date().toISOString().slice(0,10) + '.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function importData(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(reader.result);
+        if (!confirm('导入会覆盖当前浏览器里的数据，确定吗？')) return;
+        birds = data || {};
+        currentRing = Object.keys(birds)[0] || '';
+        saveStore();
+        renderAll();
+        alert('导入完成');
+      } catch { alert('备份文件格式不正确'); }
+    };
+    reader.readAsText(file);
+  }
+
+  function escapeHtml(s) {
+    return String(s || '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  }
+  function escapeJs(s) { return String(s || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'"); }
+
+  renderAll();
+</script>
+</body>
+</html>
