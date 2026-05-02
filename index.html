@@ -4,40 +4,28 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>鸽棚血统管理</title>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <style>
 body{font-family:Arial,"Microsoft YaHei",sans-serif;margin:0;background:#f5f5f5;color:#222}
 header{background:#222;color:#fff;padding:14px;font-size:22px;font-weight:bold}
-main{max-width:1000px;margin:auto;padding:10px}
-.card{background:#fff;padding:12px;margin:10px 0;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
-input,textarea,select,button{font-size:16px;box-sizing:border-box}
-input,textarea,select{width:100%;padding:8px;margin:5px 0;border:1px solid #ccc;border-radius:6px}
-textarea{min-height:60px}
-button{padding:9px 12px;margin:4px 2px;background:#222;color:#fff;border:none;border-radius:6px;cursor:pointer}
-button.gray{background:#666}
-button.red{background:#b3261e}
-button.light{background:#e6e6e6;color:#222}
-.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.tree{overflow-x:auto}
-.treeRow{display:flex;gap:8px;margin:8px 0;min-width:760px}
-.box{border:1px solid #ccc;border-radius:8px;padding:8px;flex:1;background:#fafafa;min-height:78px}
-.ring{color:#c23b22;font-weight:bold}
-.small{font-size:13px;color:#555;white-space:pre-wrap}
-.listItem{border:1px solid #ddd;border-radius:8px;padding:8px;margin:6px 0;background:#fafafa}
-.muted{color:#777;font-size:14px}
-label{font-size:14px;color:#555}
-.photo{width:100px;height:100px;object-fit:cover;border-radius:8px;border:1px solid #ccc;margin-top:6px}
-@media(max-width:700px){.row{grid-template-columns:1fr}.treeRow{min-width:720px}header{font-size:20px}}
+main{max-width:1200px;margin:auto;padding:10px}.card{background:#fff;padding:12px;margin:10px 0;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
+input,textarea,select,button{font-size:16px;box-sizing:border-box}input,textarea,select{width:100%;padding:8px;margin:5px 0;border:1px solid #ccc;border-radius:6px}textarea{min-height:70px}button{padding:9px 12px;margin:4px 2px;background:#222;color:#fff;border:none;border-radius:6px;cursor:pointer}button.gray{background:#666}button.red{background:#b3261e}button.light{background:#e6e6e6;color:#222}.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}label{font-size:14px;color:#555}.muted{color:#777;font-size:14px}.ring{color:#d4482f;font-weight:bold}.small{font-size:13px;color:#555;white-space:pre-wrap}.photo{width:100px;height:100px;object-fit:cover;border-radius:8px;border:1px solid #ccc;margin-top:6px}.listItem{border:1px solid #ddd;border-radius:8px;padding:8px;margin:6px 0;background:#fafafa}
+/* 血统书 */
+.pedigreeWrap{overflow:auto;background:#fff;padding:10px}.pedigreeSheet{width:1100px;min-height:760px;background:#fff;padding:18px;position:relative;border:1px solid #eee}.pedHeader{text-align:center;font-size:28px;color:#e65a2e;font-weight:bold;margin-bottom:18px}.loftName{position:absolute;left:18px;top:70px;font-size:26px}.pedGrid{display:grid;grid-template-columns:240px 240px 240px 240px;gap:18px;align-items:start;margin-top:105px}.pedCol{display:flex;flex-direction:column;gap:14px}.pedBox{border:2px solid #555;border-radius:8px;background:#fff;min-height:118px;overflow:hidden}.pedBox.large{min-height:380px}.pedBox.mid{min-height:245px}.pedTitle{border-bottom:1px solid #999;padding:8px;text-align:center}.pedRing{color:#d4482f;font-weight:bold;font-size:18px}.pedBody{padding:8px;font-size:14px;line-height:1.45;white-space:pre-wrap}.pedLabel{font-size:14px;color:#555;margin-bottom:4px}.pedPhoto{width:100%;max-height:160px;object-fit:cover;border-bottom:1px solid #ddd}.printOnly{display:none}
+@media(max-width:700px){.row{grid-template-columns:1fr}header{font-size:20px}.pedigreeSheet{width:1000px}}
+@media print{header,.no-print,.card:not(.printArea){display:none!important}body{background:#fff}.printArea{box-shadow:none}.pedigreeWrap{overflow:visible}.pedigreeSheet{border:none}}
 </style>
 </head>
 <body>
 <header>鸽棚血统管理</header>
 <main>
 
-<div class="card">
+<div class="card no-print">
   <h3>查询</h3>
   <input id="search" placeholder="输入足环号 / 名字 / 成绩关键词">
   <button onclick="queryBird()">查询</button>
   <button class="light" onclick="clearSearch()">清空查询</button>
+  <button class="gray" onclick="exportPedigreeImage()">导出血统图图片</button>
 </div>
 
 <div class="card">
@@ -45,108 +33,66 @@ label{font-size:14px;color:#555}
   <div id="result">暂无数据</div>
 </div>
 
-<div class="card">
-  <h3>血统图</h3>
-  <div id="tree" class="tree">暂无血统图</div>
+<div class="card printArea">
+  <h3 class="no-print">血统书预览</h3>
+  <div class="pedigreeWrap">
+    <div id="pedigreeSheet" class="pedigreeSheet">暂无血统图</div>
+  </div>
 </div>
 
-<div class="card">
+<div class="card no-print">
   <h3 id="formTitle">新增鸽子</h3>
   <input type="hidden" id="editingRing">
   <div class="row">
     <div><label>足环号（必填）</label><input id="ring"></div>
-    <div><label>名字</label><input id="name"></div>
-    <div><label>父亲</label><input id="father"></div>
-    <div><label>母亲</label><input id="mother"></div>
+    <div><label>名字/昵称</label><input id="name"></div>
+    <div><label>性别</label><select id="gender"><option value="">不明</option><option>雄</option><option>雌</option></select></div>
+    <div><label>出生年份</label><input id="year"></div>
+    <div><label>羽色</label><input id="color"></div>
+    <div><label>眼色/眼砂</label><input id="eye"></div>
+    <div><label>父亲足环号</label><input id="father"></div>
+    <div><label>母亲足环号</label><input id="mother"></div>
   </div>
-  <label>上传照片</label>
-  <input type="file" id="photoInput" accept="image/*">
+  <label>成绩 / 血统说明</label><textarea id="achievement"></textarea>
+  <label>备注</label><textarea id="note"></textarea>
+  <label>上传照片</label><input type="file" id="photoInput" accept="image/*">
   <button onclick="saveBird()">保存</button>
+  <button class="light" onclick="clearForm()">清空表单</button>
+</div>
+
+<div class="card no-print">
+  <h3>鸽子列表</h3>
+  <div id="count" class="muted"></div>
+  <div id="list"></div>
 </div>
 
 </main>
-
 <script>
-var birds = JSON.parse(localStorage.getItem("birds") || "{}");
-var currentRing = "";
-
-function save(){ localStorage.setItem("birds", JSON.stringify(birds)); }
-function v(id){ return document.getElementById(id).value.trim(); }
-function setv(id,val){ document.getElementById(id).value = val || ""; }
-function get(r){ return birds[r] || null; }
-
-function readImage(file,callback){
-  if(!file){callback("");return;}
-  var reader = new FileReader();
-  reader.onload = function(){ callback(reader.result); };
-  reader.readAsDataURL(file);
-}
-
-function saveBird(){
-  var ring = v("ring");
-  if(!ring){ alert("请输入足环号"); return; }
-
-  var file = document.getElementById("photoInput").files[0];
-
-  readImage(file,function(base64){
-    birds[ring] = {
-      name: v("name"),
-      father: v("father"),
-      mother: v("mother"),
-      photo: base64 || (birds[ring] && birds[ring].photo) || ""
-    };
-
-    save();
-    alert("已保存：" + ring);
-    setv("search", ring);
-    queryBird();
-  });
-}
-
-function queryBird(){
-  var ring = v("search");
-  var b = birds[ring];
-
-  if(!b){
-    document.getElementById("result").innerHTML = "未找到";
-    return;
-  }
-
-  document.getElementById("result").innerHTML =
-    "<b>足环号：</b>" + ring +
-    "<br><b>名字：</b>" + (b.name||"") +
-    "<br><b>父：</b>" + (b.father||"") +
-    "<br><b>母：</b>" + (b.mother||"") +
-    (b.photo ? "<br><img class='photo' src='"+b.photo+"'>" : "");
-
-  drawTree(ring);
-}
-
-function drawTree(r){
-  var b = get(r) || {};
-  var f = get(b.father) || {};
-  var m = get(b.mother) || {};
-
-  document.getElementById("tree").innerHTML =
-    "<div class='treeRow'>"+
-      box("本鸽", r, b)+
-    "</div>"+
-    "<div class='treeRow'>"+
-      box("父", b.father, f)+
-      box("母", b.mother, m)+
-    "</div>";
-}
-
-function box(title, ring, b){
-  if(!ring) return "<div class='box'>"+title+"<br>未填写</div>";
-  return "<div class='box'><b>"+title+"</b><br>"+ring+"<br>"+(b.name||"")+ (b.photo?"<br><img class='photo' src='"+b.photo+"'>":"") +"</div>";
-}
-
-function clearSearch(){ setv("search",""); }
-
-currentRing = Object.keys(birds)[0] || "";
-if(currentRing){ setv("search", currentRing); queryBird(); }
+var birds={};var currentRing="";
+try{birds=JSON.parse(localStorage.getItem("birds")||"{}");}catch(e){birds={};}
+function save(){localStorage.setItem("birds",JSON.stringify(birds));}
+function v(id){return document.getElementById(id).value.trim();}
+function setv(id,val){document.getElementById(id).value=val||"";}
+function get(r){return birds[r]||null;}
+function esc(s){return String(s||"").replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
+function textOf(b,r){return [r,b.name,b.gender,b.year,b.color,b.eye,b.father,b.mother,b.achievement,b.note].join(" ").toLowerCase();}
+function readImage(file,cb){if(!file){cb("");return;}var reader=new FileReader();reader.onload=function(){cb(reader.result);};reader.readAsDataURL(file);}
+function saveBird(){var oldRing=v("editingRing");var ring=v("ring");if(!ring){alert("请输入足环号");return;}if(oldRing&&oldRing!==ring&&birds[ring]){alert("这个足环号已经存在");return;}if(!oldRing&&birds[ring]&&!confirm("这个足环号已经存在，要覆盖吗？")){return;}var file=document.getElementById("photoInput").files[0];readImage(file,function(photo){var old=birds[oldRing]||birds[ring]||{};var b={name:v("name"),gender:v("gender"),year:v("year"),color:v("color"),eye:v("eye"),father:v("father"),mother:v("mother"),achievement:v("achievement"),note:v("note"),photo:photo||old.photo||""};if(oldRing&&oldRing!==ring){delete birds[oldRing];}birds[ring]=b;currentRing=ring;save();clearForm();setv("search",ring);renderAll();alert("已保存："+ring);});}
+function queryBird(){var q=v("search").toLowerCase();if(!q){alert("请输入足环号或关键词");return;}var exact=birds[v("search")];if(exact){currentRing=v("search");renderAll();return;}var keys=Object.keys(birds);for(var i=0;i<keys.length;i++){var r=keys[i];if(textOf(birds[r],r).indexOf(q)>=0){currentRing=r;renderAll();return;}}document.getElementById("result").innerHTML="未找到";document.getElementById("pedigreeSheet").innerHTML="暂无血统图";}
+function clearSearch(){setv("search","");}
+function jump(r){if(!r)return;setv("search",r);currentRing=r;renderAll();}
+function editBird(r){var b=get(r);if(!b)return;document.getElementById("formTitle").innerHTML="修改鸽子";setv("editingRing",r);setv("ring",r);setv("name",b.name);setv("gender",b.gender);setv("year",b.year);setv("color",b.color);setv("eye",b.eye);setv("father",b.father);setv("mother",b.mother);setv("achievement",b.achievement);setv("note",b.note);window.scrollTo({top:document.getElementById("formTitle").offsetTop-10,behavior:"smooth"});}
+function deleteBird(r){if(!confirm("确定删除 "+r+" 吗？"))return;delete birds[r];if(currentRing===r){currentRing=Object.keys(birds)[0]||"";}save();renderAll();}
+function clearForm(){document.getElementById("formTitle").innerHTML="新增鸽子";["editingRing","ring","name","gender","year","color","eye","father","mother","achievement","note"].forEach(function(id){setv(id,"");});document.getElementById("photoInput").value="";}
+function birdLink(r){if(!r)return"-";if(birds[r])return"<a href='#' onclick='jump(\""+esc(r)+"\")'>"+esc(r)+"</a>";return esc(r)+" <span class='muted'>（未录入）</span>";}
+function renderResult(){var b=get(currentRing);if(!b){document.getElementById("result").innerHTML="暂无数据";return;}document.getElementById("result").innerHTML="<div><span class='ring'>"+esc(currentRing)+"</span> "+esc(b.name)+"</div><div>性别："+esc(b.gender||"-")+"　年份："+esc(b.year||"-")+"　羽色："+esc(b.color||"-")+"　眼色："+esc(b.eye||"-")+"</div><div>父："+birdLink(b.father)+"　母："+birdLink(b.mother)+"</div><div class='small'>成绩："+esc(b.achievement||"-")+"</div><div class='small'>备注："+esc(b.note||"-")+"</div>"+(b.photo?"<img class='photo' src='"+b.photo+"'>":"")+"<br><button onclick='editBird(\""+esc(currentRing)+"\")'>修改这只</button><button class='red' onclick='deleteBird(\""+esc(currentRing)+"\")'>删除这只</button>";}
+function pedBox(title,r,cls){var b=get(r);var html="<div class='pedBox "+(cls||"")+"'><div class='pedTitle'><div>"+esc(title)+"</div><div class='pedRing'>"+esc(r||"")+"</div></div>";if(b&&b.photo){html+="<img class='pedPhoto' src='"+b.photo+"'>";}html+="<div class='pedBody'>";if(!r){html+="未填写";}else if(!b){html+="资料未录入";}else{html+=[b.color,b.eye,b.gender,b.year,b.name,b.achievement,b.note].filter(Boolean).map(esc).join("
+");}html+="</div></div>";return html;}
+function renderPedigree(){var b=get(currentRing);var sheet=document.getElementById("pedigreeSheet");if(!b){sheet.innerHTML="暂无血统图";return;}var f=get(b.father),m=get(b.mother);var ff=f&&get(f.father),fm=f&&get(f.mother),mf=m&&get(m.father),mm=m&&get(m.mother);sheet.innerHTML="<div class='pedHeader'>"+esc(currentRing)+"</div><div class='loftName'>鸽棚血统书</div><div class='pedGrid'><div class='pedCol'>"+pedBox("本鸽",currentRing,"large")+"</div><div class='pedCol'>"+pedBox("父亲",b.father,"mid")+pedBox("母亲",b.mother,"mid")+"</div><div class='pedCol'>"+pedBox("祖父",f?f.father:"")+pedBox("祖母",f?f.mother:"")+pedBox("外祖父",m?m.father:"")+pedBox("外祖母",m?m.mother:"")+"</div><div class='pedCol'>"+pedBox("父系曾祖父",ff?ff.father:"")+pedBox("父系曾祖母",ff?ff.mother:"")+pedBox("父系外曾祖父",fm?fm.father:"")+pedBox("父系外曾祖母",fm?fm.mother:"")+pedBox("母系曾祖父",mf?mf.father:"")+pedBox("母系曾祖母",mf?mf.mother:"")+pedBox("母系外曾祖父",mm?mm.father:"")+pedBox("母系外曾祖母",mm?mm.mother:"")+"</div></div>";}
+function renderList(){var keys=Object.keys(birds);document.getElementById("count").innerHTML="共 "+keys.length+" 只";if(!keys.length){document.getElementById("list").innerHTML="暂无数据";return;}var html="";keys.forEach(function(r){var b=birds[r];html+="<div class='listItem'><span class='ring'>"+esc(r)+"</span> "+esc(b.name||"")+"<br><span class='muted'>父："+esc(b.father||"-")+" / 母："+esc(b.mother||"-")+"</span><br><button onclick='jump(\""+esc(r)+"\")'>查看</button><button class='gray' onclick='editBird(\""+esc(r)+"\")'>修改</button><button class='red' onclick='deleteBird(\""+esc(r)+"\")'>删除</button></div>";});document.getElementById("list").innerHTML=html;}
+function renderAll(){renderResult();renderPedigree();renderList();}
+function exportPedigreeImage(){var el=document.getElementById("pedigreeSheet");html2canvas(el,{backgroundColor:"#ffffff",scale:2,useCORS:true}).then(function(canvas){var a=document.createElement("a");a.download=(currentRing||"pedigree")+"_血统图.png";a.href=canvas.toDataURL("image/png");a.click();});}
+document.getElementById("search").addEventListener("keydown",function(e){if(e.key==="Enter")queryBird();});currentRing=Object.keys(birds)[0]||"";renderAll();
 </script>
-
 </body>
 </html>
