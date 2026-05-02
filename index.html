@@ -41,7 +41,8 @@
 <main>
   <section class="card no-print">
     <div class="toolbar">
-      <input id="search" placeholder="搜索足环号 / 名字 / 成绩 / 备注" oninput="renderList()" />
+      <input id="search" placeholder="输入足环号 / 名字 / 成绩 / 备注" />
+      <button onclick="queryBird()">查询</button>
       <button onclick="newBird()">新增鸽子</button>
       <button class="secondary" onclick="exportData()">导出备份</button>
       <label class="light" style="padding:8px 10px;border-radius:8px;cursor:pointer;">导入备份<input type="file" accept="application/json" style="display:none" onchange="importData(event)"></label>
@@ -169,6 +170,16 @@
   }
 
   function selectBird(ring) { currentRing = ring; renderAll(); }
+
+  function queryBird() {
+    const q = document.getElementById('search').value.trim().toLowerCase();
+    if (!q) return alert('请输入足环号或关键词');
+    const match = Object.values(birds).find(b => birdText(b).includes(q));
+    if (!match) return alert('没有找到这只鸽子，请确认是否已经录入或导入备份');
+    currentRing = match.ring;
+    renderAll();
+    document.getElementById('detail').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 
   function birdText(b) {
     if (!b) return '';
