@@ -10,6 +10,7 @@ main{max-width:900px;margin:auto;padding:10px}
 .card{background:#fff;padding:12px;margin:10px 0;border-radius:8px}
 input,button{padding:8px;margin:5px 0;width:100%}
 button{background:#222;color:#fff;border:none;border-radius:6px}
+.box{border:1px solid #ccc;padding:8px;margin:5px}
 </style>
 </head>
 
@@ -29,6 +30,11 @@ button{background:#222;color:#fff;border:none;border-radius:6px}
 </div>
 
 <div class="card">
+<h3>血统（简版）</h3>
+<div id="tree"></div>
+</div>
+
+<div class="card">
 <h3>新增鸽子</h3>
 
 <input id="ring" placeholder="足环号（必填）">
@@ -44,12 +50,7 @@ button{background:#222;color:#fff;border:none;border-radius:6px}
 
 <script>
 
-var birds = {};
-try {
-  birds = JSON.parse(localStorage.getItem("birds") || "{}");
-} catch(e) {
-  birds = {};
-}
+var birds = JSON.parse(localStorage.getItem("birds") || "{}");
 
 function save() {
   localStorage.setItem("birds", JSON.stringify(birds));
@@ -73,7 +74,6 @@ function saveBird() {
 
   alert("已保存：" + ring);
 
-  // 自动显示
   document.getElementById("search").value = ring;
   queryBird();
 }
@@ -81,23 +81,39 @@ function saveBird() {
 function queryBird() {
   var ring = document.getElementById("search").value.trim();
 
-  if (!ring) {
-    alert("请输入足环号");
-    return;
-  }
-
   var b = birds[ring];
 
   if (!b) {
     document.getElementById("result").innerHTML = "未找到";
+    document.getElementById("tree").innerHTML = "";
     return;
   }
 
   document.getElementById("result").innerHTML =
     "<b>足环号：</b>" + ring +
     "<br><b>名字：</b>" + b.name +
-    "<br><b>父：</b>" + b.father +
-    "<br><b>母：</b>" + b.mother;
+    "<br><b>父：</b> <a href='#' onclick='jump(\""+b.father+"\")'>"+b.father+"</a>" +
+    "<br><b>母：</b> <a href='#' onclick='jump(\""+b.mother+"\")'>"+b.mother+"</a>";
+
+  drawTree(ring);
+}
+
+function jump(ring){
+  if(!ring) return;
+  document.getElementById("search").value = ring;
+  queryBird();
+}
+
+function drawTree(ring){
+  var b = birds[ring];
+
+  var father = birds[b.father] || {};
+  var mother = birds[b.mother] || {};
+
+  document.getElementById("tree").innerHTML =
+    "<div class='box'><b>本鸽：</b>"+ring+" "+(b.name||"")+"</div>" +
+    "<div class='box'><b>父：</b>"+(b.father||"-")+" "+(father.name||"")+"</div>" +
+    "<div class='box'><b>母：</b>"+(b.mother||"-")+" "+(mother.name||"")+"</div>";
 }
 
 </script>
