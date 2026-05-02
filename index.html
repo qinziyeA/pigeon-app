@@ -10,9 +10,8 @@ body{font-family:Arial,"Microsoft YaHei",sans-serif;margin:0;background:#f5f5f5;
 header{background:#222;color:#fff;padding:14px;font-size:22px;font-weight:bold}
 main{max-width:1200px;margin:auto;padding:10px}.card{background:#fff;padding:12px;margin:10px 0;border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.08)}
 input,textarea,select,button{font-size:16px;box-sizing:border-box}input,textarea,select{width:100%;padding:8px;margin:5px 0;border:1px solid #ccc;border-radius:6px}textarea{min-height:70px}button{padding:9px 12px;margin:4px 2px;background:#222;color:#fff;border:none;border-radius:6px;cursor:pointer}button.gray{background:#666}button.red{background:#b3261e}button.light{background:#e6e6e6;color:#222}.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}label{font-size:14px;color:#555}.muted{color:#777;font-size:14px}.ring{color:#d4482f;font-weight:bold}.small{font-size:13px;color:#555;white-space:pre-wrap}.photo{width:100px;height:100px;object-fit:cover;border-radius:8px;border:1px solid #ccc;margin-top:6px}.listItem{border:1px solid #ddd;border-radius:8px;padding:8px;margin:6px 0;background:#fafafa}
-/* 血统书 */
-.pedigreeWrap{overflow:auto;background:#fff;padding:10px}.pedigreeSheet{width:1100px;min-height:760px;background:#fff;padding:18px;position:relative;border:1px solid #eee}.pedHeader{text-align:center;font-size:28px;color:#e65a2e;font-weight:bold;margin-bottom:18px}.loftName{position:absolute;left:18px;top:70px;font-size:26px}.pedGrid{display:grid;grid-template-columns:240px 240px 240px 240px;gap:18px;align-items:start;margin-top:105px}.pedCol{display:flex;flex-direction:column;gap:14px}.pedBox{border:2px solid #555;border-radius:8px;background:#fff;min-height:118px;overflow:hidden}.pedBox.large{min-height:380px}.pedBox.mid{min-height:245px}.pedTitle{border-bottom:1px solid #999;padding:8px;text-align:center}.pedRing{color:#d4482f;font-weight:bold;font-size:18px}.pedBody{padding:8px;font-size:14px;line-height:1.45;white-space:pre-wrap}.pedLabel{font-size:14px;color:#555;margin-bottom:4px}.pedPhoto{width:100%;max-height:160px;object-fit:cover;border-bottom:1px solid #ddd}.printOnly{display:none}
-@media(max-width:700px){.row{grid-template-columns:1fr}header{font-size:20px}.pedigreeSheet{width:1000px}}
+.pedigreeWrap{overflow:auto;background:#fff;padding:10px}.pedigreeSheet{width:1100px;min-height:760px;background:#fff;padding:18px;border:1px solid #eee}.pedHeader{text-align:center;font-size:28px;color:#e65a2e;font-weight:bold;margin-bottom:12px}.loftName{font-size:26px;margin-bottom:12px}.pedGrid{display:grid;grid-template-columns:240px 250px 250px 260px;gap:14px;align-items:start}.pedCol{display:flex;flex-direction:column;gap:12px}.pedBox{border:2px solid #555;border-radius:8px;background:#fff;min-height:110px;overflow:hidden}.pedBox.large{min-height:430px}.pedBox.mid{min-height:260px}.pedTitle{border-bottom:1px solid #999;padding:7px;text-align:center}.pedRing{color:#d4482f;font-weight:bold;font-size:18px}.pedBody{padding:8px;font-size:14px;line-height:1.45;white-space:pre-wrap}.pedPhoto{width:100%;max-height:155px;object-fit:cover;border-bottom:1px solid #ddd}
+@media(max-width:700px){.row{grid-template-columns:1fr}header{font-size:20px}.pedigreeSheet{width:1050px}}
 @media print{header,.no-print,.card:not(.printArea){display:none!important}body{background:#fff}.printArea{box-shadow:none}.pedigreeWrap{overflow:visible}.pedigreeSheet{border:none}}
 </style>
 </head>
@@ -23,9 +22,9 @@ input,textarea,select,button{font-size:16px;box-sizing:border-box}input,textarea
 <div class="card no-print">
   <h3>查询</h3>
   <input id="search" placeholder="输入足环号 / 名字 / 成绩关键词">
-  <button onclick="queryBird()">查询</button>
-  <button class="light" onclick="clearSearch()">清空查询</button>
-  <button class="gray" onclick="exportPedigreeImage()">导出血统图图片</button>
+  <button id="queryBtn" type="button">查询</button>
+  <button id="clearSearchBtn" type="button" class="light">清空查询</button>
+  <button id="exportImageBtn" type="button" class="gray">导出血统图图片</button>
 </div>
 
 <div class="card">
@@ -56,8 +55,8 @@ input,textarea,select,button{font-size:16px;box-sizing:border-box}input,textarea
   <label>成绩 / 血统说明</label><textarea id="achievement"></textarea>
   <label>备注</label><textarea id="note"></textarea>
   <label>上传照片</label><input type="file" id="photoInput" accept="image/*">
-  <button onclick="saveBird()">保存</button>
-  <button class="light" onclick="clearForm()">清空表单</button>
+  <button id="saveBtn" type="button">保存</button>
+  <button id="clearFormBtn" type="button" class="light">清空表单</button>
 </div>
 
 <div class="card no-print">
@@ -68,31 +67,290 @@ input,textarea,select,button{font-size:16px;box-sizing:border-box}input,textarea
 
 </main>
 <script>
-var birds={};var currentRing="";
-try{birds=JSON.parse(localStorage.getItem("birds")||"{}");}catch(e){birds={};}
-function save(){localStorage.setItem("birds",JSON.stringify(birds));}
-function v(id){return document.getElementById(id).value.trim();}
-function setv(id,val){document.getElementById(id).value=val||"";}
-function get(r){return birds[r]||null;}
-function esc(s){return String(s||"").replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];});}
-function textOf(b,r){return [r,b.name,b.gender,b.year,b.color,b.eye,b.father,b.mother,b.achievement,b.note].join(" ").toLowerCase();}
-function readImage(file,cb){if(!file){cb("");return;}var reader=new FileReader();reader.onload=function(){cb(reader.result);};reader.readAsDataURL(file);}
-function saveBird(){var oldRing=v("editingRing");var ring=v("ring");if(!ring){alert("请输入足环号");return;}if(oldRing&&oldRing!==ring&&birds[ring]){alert("这个足环号已经存在");return;}if(!oldRing&&birds[ring]&&!confirm("这个足环号已经存在，要覆盖吗？")){return;}var file=document.getElementById("photoInput").files[0];readImage(file,function(photo){var old=birds[oldRing]||birds[ring]||{};var b={name:v("name"),gender:v("gender"),year:v("year"),color:v("color"),eye:v("eye"),father:v("father"),mother:v("mother"),achievement:v("achievement"),note:v("note"),photo:photo||old.photo||""};if(oldRing&&oldRing!==ring){delete birds[oldRing];}birds[ring]=b;currentRing=ring;save();clearForm();setv("search",ring);renderAll();alert("已保存："+ring);});}
-function queryBird(){var q=v("search").toLowerCase();if(!q){alert("请输入足环号或关键词");return;}var exact=birds[v("search")];if(exact){currentRing=v("search");renderAll();return;}var keys=Object.keys(birds);for(var i=0;i<keys.length;i++){var r=keys[i];if(textOf(birds[r],r).indexOf(q)>=0){currentRing=r;renderAll();return;}}document.getElementById("result").innerHTML="未找到";document.getElementById("pedigreeSheet").innerHTML="暂无血统图";}
-function clearSearch(){setv("search","");}
-function jump(r){if(!r)return;setv("search",r);currentRing=r;renderAll();}
-function editBird(r){var b=get(r);if(!b)return;document.getElementById("formTitle").innerHTML="修改鸽子";setv("editingRing",r);setv("ring",r);setv("name",b.name);setv("gender",b.gender);setv("year",b.year);setv("color",b.color);setv("eye",b.eye);setv("father",b.father);setv("mother",b.mother);setv("achievement",b.achievement);setv("note",b.note);window.scrollTo({top:document.getElementById("formTitle").offsetTop-10,behavior:"smooth"});}
-function deleteBird(r){if(!confirm("确定删除 "+r+" 吗？"))return;delete birds[r];if(currentRing===r){currentRing=Object.keys(birds)[0]||"";}save();renderAll();}
-function clearForm(){document.getElementById("formTitle").innerHTML="新增鸽子";["editingRing","ring","name","gender","year","color","eye","father","mother","achievement","note"].forEach(function(id){setv(id,"");});document.getElementById("photoInput").value="";}
-function birdLink(r){if(!r)return"-";if(birds[r])return"<a href='#' onclick='jump(\""+esc(r)+"\")'>"+esc(r)+"</a>";return esc(r)+" <span class='muted'>（未录入）</span>";}
-function renderResult(){var b=get(currentRing);if(!b){document.getElementById("result").innerHTML="暂无数据";return;}document.getElementById("result").innerHTML="<div><span class='ring'>"+esc(currentRing)+"</span> "+esc(b.name)+"</div><div>性别："+esc(b.gender||"-")+"　年份："+esc(b.year||"-")+"　羽色："+esc(b.color||"-")+"　眼色："+esc(b.eye||"-")+"</div><div>父："+birdLink(b.father)+"　母："+birdLink(b.mother)+"</div><div class='small'>成绩："+esc(b.achievement||"-")+"</div><div class='small'>备注："+esc(b.note||"-")+"</div>"+(b.photo?"<img class='photo' src='"+b.photo+"'>":"")+"<br><button onclick='editBird(\""+esc(currentRing)+"\")'>修改这只</button><button class='red' onclick='deleteBird(\""+esc(currentRing)+"\")'>删除这只</button>";}
-function pedBox(title,r,cls){var b=get(r);var html="<div class='pedBox "+(cls||"")+"'><div class='pedTitle'><div>"+esc(title)+"</div><div class='pedRing'>"+esc(r||"")+"</div></div>";if(b&&b.photo){html+="<img class='pedPhoto' src='"+b.photo+"'>";}html+="<div class='pedBody'>";if(!r){html+="未填写";}else if(!b){html+="资料未录入";}else{html+=[b.color,b.eye,b.gender,b.year,b.name,b.achievement,b.note].filter(Boolean).map(esc).join("
-");}html+="</div></div>";return html;}
-function renderPedigree(){var b=get(currentRing);var sheet=document.getElementById("pedigreeSheet");if(!b){sheet.innerHTML="暂无血统图";return;}var f=get(b.father),m=get(b.mother);var ff=f&&get(f.father),fm=f&&get(f.mother),mf=m&&get(m.father),mm=m&&get(m.mother);sheet.innerHTML="<div class='pedHeader'>"+esc(currentRing)+"</div><div class='loftName'>鸽棚血统书</div><div class='pedGrid'><div class='pedCol'>"+pedBox("本鸽",currentRing,"large")+"</div><div class='pedCol'>"+pedBox("父亲",b.father,"mid")+pedBox("母亲",b.mother,"mid")+"</div><div class='pedCol'>"+pedBox("祖父",f?f.father:"")+pedBox("祖母",f?f.mother:"")+pedBox("外祖父",m?m.father:"")+pedBox("外祖母",m?m.mother:"")+"</div><div class='pedCol'>"+pedBox("父系曾祖父",ff?ff.father:"")+pedBox("父系曾祖母",ff?ff.mother:"")+pedBox("父系外曾祖父",fm?fm.father:"")+pedBox("父系外曾祖母",fm?fm.mother:"")+pedBox("母系曾祖父",mf?mf.father:"")+pedBox("母系曾祖母",mf?mf.mother:"")+pedBox("母系外曾祖父",mm?mm.father:"")+pedBox("母系外曾祖母",mm?mm.mother:"")+"</div></div>";}
-function renderList(){var keys=Object.keys(birds);document.getElementById("count").innerHTML="共 "+keys.length+" 只";if(!keys.length){document.getElementById("list").innerHTML="暂无数据";return;}var html="";keys.forEach(function(r){var b=birds[r];html+="<div class='listItem'><span class='ring'>"+esc(r)+"</span> "+esc(b.name||"")+"<br><span class='muted'>父："+esc(b.father||"-")+" / 母："+esc(b.mother||"-")+"</span><br><button onclick='jump(\""+esc(r)+"\")'>查看</button><button class='gray' onclick='editBird(\""+esc(r)+"\")'>修改</button><button class='red' onclick='deleteBird(\""+esc(r)+"\")'>删除</button></div>";});document.getElementById("list").innerHTML=html;}
-function renderAll(){renderResult();renderPedigree();renderList();}
-function exportPedigreeImage(){var el=document.getElementById("pedigreeSheet");html2canvas(el,{backgroundColor:"#ffffff",scale:2,useCORS:true}).then(function(canvas){var a=document.createElement("a");a.download=(currentRing||"pedigree")+"_血统图.png";a.href=canvas.toDataURL("image/png");a.click();});}
-document.getElementById("search").addEventListener("keydown",function(e){if(e.key==="Enter")queryBird();});currentRing=Object.keys(birds)[0]||"";renderAll();
+var birds = {};
+var currentRing = "";
+try {
+  birds = JSON.parse(localStorage.getItem("birds") || "{}");
+} catch (e) {
+  birds = {};
+}
+
+function saveStore() {
+  localStorage.setItem("birds", JSON.stringify(birds));
+}
+function v(id) {
+  return document.getElementById(id).value.trim();
+}
+function setv(id, val) {
+  document.getElementById(id).value = val || "";
+}
+function getBird(ring) {
+  return birds[ring] || null;
+}
+function escapeText(s) {
+  return String(s || "").replace(/[&<>"]/g, function(c) {
+    return {"&":"&amp;", "<":"&lt;", ">":"&gt;", "\"":"&quot;"}[c];
+  });
+}
+function birdText(b, ring) {
+  return [ring, b.name, b.gender, b.year, b.color, b.eye, b.father, b.mother, b.achievement, b.note].join(" ").toLowerCase();
+}
+function readImage(file, callback) {
+  if (!file) {
+    callback("");
+    return;
+  }
+  var reader = new FileReader();
+  reader.onload = function() {
+    callback(reader.result);
+  };
+  reader.readAsDataURL(file);
+}
+
+function saveBird() {
+  var oldRing = v("editingRing");
+  var ring = v("ring");
+  if (!ring) {
+    alert("请输入足环号");
+    return;
+  }
+  if (oldRing && oldRing !== ring && birds[ring]) {
+    alert("这个足环号已经存在");
+    return;
+  }
+  if (!oldRing && birds[ring]) {
+    if (!confirm("这个足环号已经存在，要覆盖吗？")) {
+      return;
+    }
+  }
+
+  var file = document.getElementById("photoInput").files[0];
+  readImage(file, function(photo) {
+    var old = birds[oldRing] || birds[ring] || {};
+    var data = {
+      name: v("name"),
+      gender: v("gender"),
+      year: v("year"),
+      color: v("color"),
+      eye: v("eye"),
+      father: v("father"),
+      mother: v("mother"),
+      achievement: v("achievement"),
+      note: v("note"),
+      photo: photo || old.photo || ""
+    };
+    if (oldRing && oldRing !== ring) {
+      delete birds[oldRing];
+    }
+    birds[ring] = data;
+    currentRing = ring;
+    saveStore();
+    clearForm();
+    setv("search", ring);
+    renderAll();
+    alert("已保存：" + ring);
+  });
+}
+
+function queryBird() {
+  var raw = v("search");
+  var q = raw.toLowerCase();
+  if (!q) {
+    alert("请输入足环号或关键词");
+    return;
+  }
+  if (birds[raw]) {
+    currentRing = raw;
+    renderAll();
+    return;
+  }
+  var keys = Object.keys(birds);
+  for (var i = 0; i < keys.length; i++) {
+    var r = keys[i];
+    if (birdText(birds[r], r).indexOf(q) >= 0) {
+      currentRing = r;
+      renderAll();
+      return;
+    }
+  }
+  document.getElementById("result").innerHTML = "未找到";
+  document.getElementById("pedigreeSheet").innerHTML = "暂无血统图";
+}
+
+function clearSearch() {
+  setv("search", "");
+}
+function clearForm() {
+  document.getElementById("formTitle").textContent = "新增鸽子";
+  var ids = ["editingRing","ring","name","gender","year","color","eye","father","mother","achievement","note"];
+  for (var i = 0; i < ids.length; i++) {
+    setv(ids[i], "");
+  }
+  document.getElementById("photoInput").value = "";
+}
+function jumpTo(ring) {
+  if (!ring) return;
+  currentRing = ring;
+  setv("search", ring);
+  renderAll();
+}
+function editBird(ring) {
+  var b = getBird(ring);
+  if (!b) return;
+  document.getElementById("formTitle").textContent = "修改鸽子";
+  setv("editingRing", ring);
+  setv("ring", ring);
+  setv("name", b.name);
+  setv("gender", b.gender);
+  setv("year", b.year);
+  setv("color", b.color);
+  setv("eye", b.eye);
+  setv("father", b.father);
+  setv("mother", b.mother);
+  setv("achievement", b.achievement);
+  setv("note", b.note);
+  window.scrollTo({top: document.getElementById("formTitle").offsetTop - 10, behavior: "smooth"});
+}
+function deleteBird(ring) {
+  if (!confirm("确定删除 " + ring + " 吗？")) return;
+  delete birds[ring];
+  if (currentRing === ring) {
+    currentRing = Object.keys(birds)[0] || "";
+  }
+  saveStore();
+  renderAll();
+}
+function birdLink(ring) {
+  if (!ring) return "-";
+  if (birds[ring]) {
+    return "<a href='#' class='jumpLink' data-ring='" + escapeText(ring) + "'>" + escapeText(ring) + "</a>";
+  }
+  return escapeText(ring) + " <span class='muted'>（未录入）</span>";
+}
+function renderResult() {
+  var b = getBird(currentRing);
+  if (!b) {
+    document.getElementById("result").innerHTML = "暂无数据";
+    return;
+  }
+  var html = "";
+  html += "<div><span class='ring'>" + escapeText(currentRing) + "</span> " + escapeText(b.name) + "</div>";
+  html += "<div>性别：" + escapeText(b.gender || "-") + "　年份：" + escapeText(b.year || "-") + "　羽色：" + escapeText(b.color || "-") + "　眼色：" + escapeText(b.eye || "-") + "</div>";
+  html += "<div>父：" + birdLink(b.father) + "　母：" + birdLink(b.mother) + "</div>";
+  html += "<div class='small'>成绩：" + escapeText(b.achievement || "-") + "</div>";
+  html += "<div class='small'>备注：" + escapeText(b.note || "-") + "</div>";
+  if (b.photo) html += "<img class='photo' src='" + b.photo + "'>";
+  html += "<br><button class='editBtn' data-ring='" + escapeText(currentRing) + "'>修改这只</button>";
+  html += "<button class='red deleteBtn' data-ring='" + escapeText(currentRing) + "'>删除这只</button>";
+  document.getElementById("result").innerHTML = html;
+}
+function pedigreeBox(title, ring, cls) {
+  var b = getBird(ring);
+  var html = "<div class='pedBox " + (cls || "") + "'>";
+  html += "<div class='pedTitle'><div>" + escapeText(title) + "</div><div class='pedRing'>" + escapeText(ring || "") + "</div></div>";
+  if (b && b.photo) html += "<img class='pedPhoto' src='" + b.photo + "'>";
+  html += "<div class='pedBody'>";
+  if (!ring) {
+    html += "未填写";
+  } else if (!b) {
+    html += "资料未录入";
+  } else {
+    var info = [b.color, b.eye, b.gender, b.year, b.name, b.achievement, b.note].filter(function(x) { return x; });
+    html += escapeText(info.join("\n"));
+  }
+  html += "</div></div>";
+  return html;
+}
+function renderPedigree() {
+  var b = getBird(currentRing);
+  var sheet = document.getElementById("pedigreeSheet");
+  if (!b) {
+    sheet.innerHTML = "暂无血统图";
+    return;
+  }
+  var f = getBird(b.father);
+  var m = getBird(b.mother);
+  var ff = f ? getBird(f.father) : null;
+  var fm = f ? getBird(f.mother) : null;
+  var mf = m ? getBird(m.father) : null;
+  var mm = m ? getBird(m.mother) : null;
+  var html = "";
+  html += "<div class='pedHeader'>" + escapeText(currentRing) + "</div>";
+  html += "<div class='loftName'>鸽棚血统书</div>";
+  html += "<div class='pedGrid'>";
+  html += "<div class='pedCol'>" + pedigreeBox("本鸽", currentRing, "large") + "</div>";
+  html += "<div class='pedCol'>" + pedigreeBox("父亲", b.father, "mid") + pedigreeBox("母亲", b.mother, "mid") + "</div>";
+  html += "<div class='pedCol'>" + pedigreeBox("祖父", f ? f.father : "", "") + pedigreeBox("祖母", f ? f.mother : "", "") + pedigreeBox("外祖父", m ? m.father : "", "") + pedigreeBox("外祖母", m ? m.mother : "", "") + "</div>";
+  html += "<div class='pedCol'>";
+  html += pedigreeBox("父系曾祖父", ff ? ff.father : "", "");
+  html += pedigreeBox("父系曾祖母", ff ? ff.mother : "", "");
+  html += pedigreeBox("父系外曾祖父", fm ? fm.father : "", "");
+  html += pedigreeBox("父系外曾祖母", fm ? fm.mother : "", "");
+  html += pedigreeBox("母系曾祖父", mf ? mf.father : "", "");
+  html += pedigreeBox("母系曾祖母", mf ? mf.mother : "", "");
+  html += pedigreeBox("母系外曾祖父", mm ? mm.father : "", "");
+  html += pedigreeBox("母系外曾祖母", mm ? mm.mother : "", "");
+  html += "</div></div>";
+  sheet.innerHTML = html;
+}
+function renderList() {
+  var keys = Object.keys(birds);
+  document.getElementById("count").textContent = "共 " + keys.length + " 只";
+  if (!keys.length) {
+    document.getElementById("list").innerHTML = "暂无数据";
+    return;
+  }
+  var html = "";
+  for (var i = 0; i < keys.length; i++) {
+    var r = keys[i];
+    var b = birds[r];
+    html += "<div class='listItem'>";
+    html += "<span class='ring'>" + escapeText(r) + "</span> " + escapeText(b.name || "") + "<br>";
+    html += "<span class='muted'>父：" + escapeText(b.father || "-") + " / 母：" + escapeText(b.mother || "-") + "</span><br>";
+    html += "<button class='viewBtn' data-ring='" + escapeText(r) + "'>查看</button>";
+    html += "<button class='gray editBtn' data-ring='" + escapeText(r) + "'>修改</button>";
+    html += "<button class='red deleteBtn' data-ring='" + escapeText(r) + "'>删除</button>";
+    html += "</div>";
+  }
+  document.getElementById("list").innerHTML = html;
+}
+function renderAll() {
+  renderResult();
+  renderPedigree();
+  renderList();
+}
+function exportPedigreeImage() {
+  if (typeof html2canvas === "undefined") {
+    alert("导出组件没有加载成功，请检查网络，或稍后再试。保存和查询不受影响。");
+    return;
+  }
+  var el = document.getElementById("pedigreeSheet");
+  html2canvas(el, {backgroundColor: "#ffffff", scale: 2}).then(function(canvas) {
+    var a = document.createElement("a");
+    a.download = (currentRing || "pedigree") + "_血统图.png";
+    a.href = canvas.toDataURL("image/png");
+    a.click();
+  });
+}
+
+document.getElementById("saveBtn").addEventListener("click", saveBird);
+document.getElementById("queryBtn").addEventListener("click", queryBird);
+document.getElementById("clearSearchBtn").addEventListener("click", clearSearch);
+document.getElementById("clearFormBtn").addEventListener("click", clearForm);
+document.getElementById("exportImageBtn").addEventListener("click", exportPedigreeImage);
+document.getElementById("search").addEventListener("keydown", function(e) {
+  if (e.key === "Enter") queryBird();
+});
+document.body.addEventListener("click", function(e) {
+  var target = e.target;
+  if (target.classList.contains("viewBtn")) jumpTo(target.getAttribute("data-ring"));
+  if (target.classList.contains("jumpLink")) { e.preventDefault(); jumpTo(target.getAttribute("data-ring")); }
+  if (target.classList.contains("editBtn")) editBird(target.getAttribute("data-ring"));
+  if (target.classList.contains("deleteBtn")) deleteBird(target.getAttribute("data-ring"));
+});
+
+currentRing = Object.keys(birds)[0] || "";
+renderAll();
 </script>
 </body>
 </html>
