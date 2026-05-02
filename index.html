@@ -185,6 +185,33 @@
         <div><strong>${escapeHtml(b.ring)}</strong></div>
         <div>${escapeHtml(b.name || '')} ${escapeHtml(b.gender || '')}</div>
         <div class="muted">父：${escapeHtml(b.father || '-')} / 母：${escapeHtml(b.mother || '-')}</div>
+        <button onclick="selectBird('${escapeJs(b.ring)}')">查看详情</button>
+        <button class="secondary" onclick="editBird('${escapeJs(b.ring)}')">修改</button>
+        <button class="danger" onclick="deleteBird('${escapeJs(b.ring)}')">删除</button>
+      </div>`).join('');
+  }
+
+// 🔥 新增：搜索后自动选中第一条
+function autoSelectFromSearch() {
+    const q = document.getElementById('search').value.trim().toLowerCase();
+    if (!q) return;
+    const match = Object.values(birds).find(b => birdText(b).includes(q));
+    if (match) {
+        currentRing = match.ring;
+        renderAll();
+    }
+}
+
+// 输入时触发
+document.getElementById('search').addEventListener('input', () => {
+    renderList();
+    autoSelectFromSearch();
+});
+    list.innerHTML = arr.map(b => `
+      <div class="item">
+        <div><strong>${escapeHtml(b.ring)}</strong></div>
+        <div>${escapeHtml(b.name || '')} ${escapeHtml(b.gender || '')}</div>
+        <div class="muted">父：${escapeHtml(b.father || '-')} / 母：${escapeHtml(b.mother || '-')}</div>
         <button onclick="selectBird('${escapeJs(b.ring)}')">查看</button>
         <button class="secondary" onclick="editBird('${escapeJs(b.ring)}')">修改</button>
         <button class="danger" onclick="deleteBird('${escapeJs(b.ring)}')">删除</button>
