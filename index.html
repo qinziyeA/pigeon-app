@@ -25,6 +25,7 @@ button.light{background:#e6e6e6;color:#222}
 .listItem{border:1px solid #ddd;border-radius:8px;padding:8px;margin:6px 0;background:#fafafa}
 .muted{color:#777;font-size:14px}
 label{font-size:14px;color:#555}
+.photo{width:100px;height:100px;object-fit:cover;border-radius:8px;border:1px solid #ccc;margin-top:6px}
 @media(max-width:700px){.row{grid-template-columns:1fr}.treeRow{min-width:720px}header{font-size:20px}}
 </style>
 </head>
@@ -53,153 +54,99 @@ label{font-size:14px;color:#555}
   <h3 id="formTitle">新增鸽子</h3>
   <input type="hidden" id="editingRing">
   <div class="row">
-    <div><label>足环号（必填）</label><input id="ring" placeholder="例如 CHN2023-01-1668850"></div>
-    <div><label>名字/昵称</label><input id="name" placeholder="例如 冠军鸽"></div>
-    <div><label>性别</label><select id="gender"><option value="">不明</option><option>雄</option><option>雌</option></select></div>
-    <div><label>出生年份</label><input id="year" placeholder="例如 2023"></div>
-    <div><label>羽色</label><input id="color" placeholder="例如 灰、雨点、红轮"></div>
-    <div><label>眼色/眼砂</label><input id="eye" placeholder="例如 黄眼、砂眼"></div>
-    <div><label>父亲足环号</label><input id="father" placeholder="父亲足环号"></div>
-    <div><label>母亲足环号</label><input id="mother" placeholder="母亲足环号"></div>
+    <div><label>足环号（必填）</label><input id="ring"></div>
+    <div><label>名字</label><input id="name"></div>
+    <div><label>父亲</label><input id="father"></div>
+    <div><label>母亲</label><input id="mother"></div>
   </div>
-  <label>成绩 / 血统说明</label>
-  <textarea id="achievement" placeholder="例如 500公里冠军、某名鸽直子等"></textarea>
-  <label>备注</label>
-  <textarea id="note" placeholder="其他说明"></textarea>
+  <label>上传照片</label>
+  <input type="file" id="photoInput" accept="image/*">
   <button onclick="saveBird()">保存</button>
-  <button class="light" onclick="clearForm()">清空表单</button>
-</div>
-
-<div class="card">
-  <h3>鸽子列表</h3>
-  <div id="count" class="muted"></div>
-  <div id="list"></div>
 </div>
 
 </main>
 
 <script>
-var birds = {};
+var birds = JSON.parse(localStorage.getItem("birds") || "{}");
 var currentRing = "";
-try { birds = JSON.parse(localStorage.getItem("birds") || "{}"); } catch(e) { birds = {}; }
 
 function save(){ localStorage.setItem("birds", JSON.stringify(birds)); }
 function v(id){ return document.getElementById(id).value.trim(); }
 function setv(id,val){ document.getElementById(id).value = val || ""; }
 function get(r){ return birds[r] || null; }
-function esc(s){ return String(s||"").replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
-function textOf(b,ring){ return [ring,b.name,b.gender,b.year,b.color,b.eye,b.father,b.mother,b.achievement,b.note].join(" ").toLowerCase(); }
+
+function readImage(file,callback){
+  if(!file){callback("");return;}
+  var reader = new FileReader();
+  reader.onload = function(){ callback(reader.result); };
+  reader.readAsDataURL(file);
+}
 
 function saveBird(){
-  var oldRing = v("editingRing");
   var ring = v("ring");
   if(!ring){ alert("请输入足环号"); return; }
-  if(oldRing && oldRing !== ring && birds[ring]){ alert("这个足环号已经存在"); return; }
-  if(!oldRing && birds[ring]){
-    if(!confirm("这个足环号已经存在，要覆盖吗？")){ return; }
-  }
-  var b = {
-    name:v("name"), gender:v("gender"), year:v("year"), color:v("color"), eye:v("eye"),
-    father:v("father"), mother:v("mother"), achievement:v("achievement"), note:v("note")
-  };
-  if(oldRing && oldRing !== ring){ delete birds[oldRing]; }
-  birds[ring] = b;
-  currentRing = ring;
-  save();
-  clearForm();
-  setv("search", ring);
-  renderAll();
-  alert("已保存：" + ring);
+
+  var file = document.getElementById("photoInput").files[0];
+
+  readImage(file,function(base64){
+    birds[ring] = {
+      name: v("name"),
+      father: v("father"),
+      mother: v("mother"),
+      photo: base64 || (birds[ring] && birds[ring].photo) || ""
+    };
+
+    save();
+    alert("已保存：" + ring);
+    setv("search", ring);
+    queryBird();
+  });
 }
 
 function queryBird(){
-  var q = v("search").toLowerCase();
-  if(!q){ alert("请输入足环号或关键词"); return; }
-  var exact = birds[v("search")];
-  if(exact){ currentRing = v("search"); renderAll(); return; }
-  var keys = Object.keys(birds);
-  for(var i=0;i<keys.length;i++){
-    var r = keys[i];
-    if(textOf(birds[r],r).indexOf(q) >= 0){ currentRing = r; renderAll(); return; }
+  var ring = v("search");
+  var b = birds[ring];
+
+  if(!b){
+    document.getElementById("result").innerHTML = "未找到";
+    return;
   }
-  document.getElementById("result").innerHTML = "未找到";
-  document.getElementById("tree").innerHTML = "暂无血统图";
+
+  document.getElementById("result").innerHTML =
+    "<b>足环号：</b>" + ring +
+    "<br><b>名字：</b>" + (b.name||"") +
+    "<br><b>父：</b>" + (b.father||"") +
+    "<br><b>母：</b>" + (b.mother||"") +
+    (b.photo ? "<br><img class='photo' src='"+b.photo+"'>" : "");
+
+  drawTree(ring);
+}
+
+function drawTree(r){
+  var b = get(r) || {};
+  var f = get(b.father) || {};
+  var m = get(b.mother) || {};
+
+  document.getElementById("tree").innerHTML =
+    "<div class='treeRow'>"+
+      box("本鸽", r, b)+
+    "</div>"+
+    "<div class='treeRow'>"+
+      box("父", b.father, f)+
+      box("母", b.mother, m)+
+    "</div>";
+}
+
+function box(title, ring, b){
+  if(!ring) return "<div class='box'>"+title+"<br>未填写</div>";
+  return "<div class='box'><b>"+title+"</b><br>"+ring+"<br>"+(b.name||"")+ (b.photo?"<br><img class='photo' src='"+b.photo+"'>":"") +"</div>";
 }
 
 function clearSearch(){ setv("search",""); }
-function jump(r){ if(!r){return;} setv("search",r); currentRing=r; renderAll(); }
-function editBird(r){
-  var b=get(r); if(!b){return;}
-  document.getElementById("formTitle").innerHTML="修改鸽子";
-  setv("editingRing",r); setv("ring",r); setv("name",b.name); setv("gender",b.gender); setv("year",b.year);
-  setv("color",b.color); setv("eye",b.eye); setv("father",b.father); setv("mother",b.mother);
-  setv("achievement",b.achievement); setv("note",b.note);
-  window.scrollTo({top:document.getElementById("formTitle").offsetTop-10,behavior:"smooth"});
-}
-function deleteBird(r){
-  if(!confirm("确定删除 " + r + " 吗？")){ return; }
-  delete birds[r];
-  if(currentRing === r){ currentRing = Object.keys(birds)[0] || ""; }
-  save(); renderAll();
-}
-function clearForm(){
-  document.getElementById("formTitle").innerHTML="新增鸽子";
-  ["editingRing","ring","name","gender","year","color","eye","father","mother","achievement","note"].forEach(function(id){setv(id,"");});
-}
 
-function birdLink(r){
-  if(!r){ return "-"; }
-  if(birds[r]){ return "<a href='#' onclick='jump(\""+esc(r)+"\")'>"+esc(r)+"</a>"; }
-  return esc(r) + " <span class='muted'>（未录入）</span>";
-}
-function renderResult(){
-  var b = get(currentRing);
-  if(!b){ document.getElementById("result").innerHTML="暂无数据"; return; }
-  document.getElementById("result").innerHTML =
-    "<div><span class='ring'>"+esc(currentRing)+"</span> "+esc(b.name)+"</div>"+
-    "<div>性别："+esc(b.gender||"-")+"　年份："+esc(b.year||"-")+"　羽色："+esc(b.color||"-")+"　眼色："+esc(b.eye||"-")+"</div>"+
-    "<div>父："+birdLink(b.father)+"　母："+birdLink(b.mother)+"</div>"+
-    "<div class='small'>成绩："+esc(b.achievement||"-")+"</div>"+
-    "<div class='small'>备注："+esc(b.note||"-")+"</div>"+
-    "<button onclick='editBird(\""+esc(currentRing)+"\")'>修改这只</button>"+
-    "<button class='red' onclick='deleteBird(\""+esc(currentRing)+"\")'>删除这只</button>";
-}
-function box(title,r){
-  var b = get(r);
-  if(!r){ return "<div class='box'><b>"+title+"</b><br><span class='muted'>未填写</span></div>"; }
-  if(!b){ return "<div class='box'><b>"+title+"</b><br><span class='ring'>"+esc(r)+"</span><br><span class='muted'>未录入资料</span></div>"; }
-  return "<div class='box' onclick='jump(\""+esc(r)+"\")'><b>"+title+"</b><br><span class='ring'>"+esc(r)+"</span><br>"+esc(b.name||"")+" "+esc(b.gender||"")+"<div class='small'>"+esc([b.color,b.eye,b.achievement].filter(Boolean).join("\n"))+"</div></div>";
-}
-function renderTree(){
-  var b=get(currentRing);
-  if(!b){ document.getElementById("tree").innerHTML="暂无血统图"; return; }
-  var f=get(b.father), m=get(b.mother);
-  var html = "";
-  html += "<div class='treeRow'>"+box("本鸽",currentRing)+"</div>";
-  html += "<div class='treeRow'>"+box("父亲",b.father)+box("母亲",b.mother)+"</div>";
-  html += "<div class='treeRow'>"+
-    box("祖父", f ? f.father : "") + box("祖母", f ? f.mother : "") +
-    box("外祖父", m ? m.father : "") + box("外祖母", m ? m.mother : "") +
-    "</div>";
-  document.getElementById("tree").innerHTML = html;
-}
-function renderList(){
-  var keys=Object.keys(birds);
-  document.getElementById("count").innerHTML="共 " + keys.length + " 只";
-  if(!keys.length){ document.getElementById("list").innerHTML="暂无数据"; return; }
-  var html="";
-  keys.forEach(function(r){
-    var b=birds[r];
-    html += "<div class='listItem'><span class='ring'>"+esc(r)+"</span> "+esc(b.name||"")+"<br><span class='muted'>父："+esc(b.father||"-")+" / 母："+esc(b.mother||"-")+"</span><br>"+
-    "<button onclick='jump(\""+esc(r)+"\")'>查看</button><button class='gray' onclick='editBird(\""+esc(r)+"\")'>修改</button><button class='red' onclick='deleteBird(\""+esc(r)+"\")'>删除</button></div>";
-  });
-  document.getElementById("list").innerHTML=html;
-}
-function renderAll(){ renderResult(); renderTree(); renderList(); }
-
-document.getElementById("search").addEventListener("keydown",function(e){ if(e.key==="Enter"){ queryBird(); } });
 currentRing = Object.keys(birds)[0] || "";
-renderAll();
+if(currentRing){ setv("search", currentRing); queryBird(); }
 </script>
+
 </body>
 </html>
